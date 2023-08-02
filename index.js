@@ -34,12 +34,35 @@ app.get('/book', async (req, res) => {
     let title = dom.window.document.querySelector('.text-3xl.font-bold').textContent
     let publisher = dom.window.document.querySelector('.text-md').textContent
     let authors = dom.window.document.querySelector('.italic').textContent
-    let description = dom.window.document.querySelector('.js-md5-top-box-description').innerHTML.replaceAll('<br>','\n')
+    let description = dom.window.document.querySelector('.js-md5-top-box-description').innerHTML.replaceAll('<br>', '\n')
     let cover = dom.window.document.querySelector('main img').src
-    let downloadLink = dom.window.document.querySelector('main ul.mb-4:not(.js-fast-download-links-enabled) a').href
-    title = title.replace('🔍','').trim()
-    authors = authors.replace('🔍','').trim()
+    title = title.replace('🔍', '').trim()
+    authors = authors.replace('🔍', '').trim()
+    let downloadPageLink = '';
+    dom.window.document.querySelectorAll('main ul.mb-4:not(.js-fast-download-links-enabled) a').forEach((el) => {
+        console.log(el.innerHTML);
+        if (el.innerHTML.includes('Libgen')) {
+            console.log('FOUND', el.href);
+            downloadPageLink = el.href;
+        }
+    })
+    const downloadLinkHTML = await fetch(downloadPageLink)
+    const downloadLinkData = await downloadLinkHTML.text()
+    const downloadLinkDom = new JSDOM(downloadLinkData)
+    let downloadLink = '';
+    downloadLinkDom.window.document.querySelectorAll('a').forEach((el) => {
+        if (el.textContent == 'GET') {
+            if (el.href.includes('libgen')) {
+                downloadLink = el.href;
+            } else {
+                const urlObject = new URL(downloadPageLink);
+                downloadLink = `https://${urlObject.host}/${el.href}`;
+            }
+
+        }
+    })
     let book = { title, publisher, authors, description, cover, downloadLink }
+    console.log(downloadLink)
     res.json(book)
 })
 app.get('/search', async (req, res) => {
@@ -68,6 +91,12 @@ app.get('/cors', async (req, res) => {
                 // console.error('error: ' + response.statusCode)
             }
         }).pipe(res);
+})
+
+app.get('/downloadLink', async (req, res) => {
+    console.log(req.url)
+
+    res.send(dom.window.document.getElementsByTagName('a')[0].href)
 })
 
 app.listen(port, () => {
